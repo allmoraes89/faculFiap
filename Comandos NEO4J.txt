@@ -1,0 +1,36 @@
+
+match(User_id)
+detach
+delete User_id;
+
+
+match(Purchased)
+detach
+delete Purchased;
+
+
+match(Book_ID)
+detach
+delete Book_ID
+
+
+LOAD CSV WITH HEADERS FROM "file:///BX_Users_Brasil.csv" as linha FIELDTERMINATOR ';'
+CREATE (:User_ID{ID:linha.User_ID, Age:linha.Age, Age_group:linha.AGE_GROUP})
+
+
+LOAD CSV WITH HEADERS FROM "file:///BX_Books_Brasil.csv" as linha FIELDTERMINATOR ';'
+MERGE (:Book_ID{Book_ID:linha.ISBN, Book_Author:linha.Book_Author})
+
+
+LOAD CSV WITH HEADERS FROM "file:///BX_Book_Rating_Brasil.csv" as linha FIELDTERMINATOR ';'
+MERGE (source:Book_ID {Book_ID:linha.ISBN})
+MERGE (destination:User_ID {ID:linha.User_ID})
+merge (source)-[:Purchased]->(destination)
+
+
+CALL gds.graph.create('Degree','Book_ID', 'Purchased')
+
+CALL gds.degree.stream('Degree')
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).ID as name, score
+order by name asc
